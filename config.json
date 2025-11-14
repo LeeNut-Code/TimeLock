@@ -9,9 +9,10 @@
   "shutdown_time": "21:10",
   "reminder": {"show_before_minutes": 2},
   "break_ui": {
-    "wallpaper_path": "/mnt/Datas/Administrator/图片/横屏壁纸/",
+    "wallpaper_path": "/wallpaper",
     "opacity": 0.65,
     "blur_effect": true,
     "blur_radius": 20
   }
+
 }
