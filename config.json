@@ -1,13 +1,13 @@
 {
   "time_ranges": [
-    {"start": "08:25", "end": "09:55"},
+    {"start": "00:25", "end": "09:55"},
     {"start": "10:15", "end": "11:45"},
     {"start": "13:25", "end": "15:55"},
-    {"start": "16:15", "end": "22:09"},
-    {"start": "22:10", "end": "23:59"}
+    {"start": "16:15", "end": "17:45"},
+    {"start": "18:45", "end": "21:30"}
   ],
   "shutdown_time": "23:59",
-  "reminder": {"show_before_minutes": 2},
+  "reminder": {"show_before_minutes": 1},
   "break_ui": {
     "wallpaper_path": "/mnt/DATA/Administrator/图片/横屏壁纸/",
     "opacity": 0.65,

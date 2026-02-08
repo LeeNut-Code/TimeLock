@@ -49,3 +49,6 @@ htmlcov/
 # Other
 *.pem
 *.pub
+
+# Release files
+release/

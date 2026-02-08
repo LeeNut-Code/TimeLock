@@ -38,7 +38,6 @@ class RangeMonitor:
         self.is_in_range = False
         self.lock_process = None
         self.last_lock_attempt = None
-        self.linux_lock_executed = False  # 新增：跟踪Linux锁定是否已执行
 
     def parse_time(self, time_str):
         """解析时间字符串"""
@@ -48,54 +47,88 @@ class RangeMonitor:
         """检查时间是否在允许范围内，包括跨夜范围"""
         time_ranges = self.config.get('time_ranges', [])
         
-        # 特殊情况：检查是否在最后一个范围结束后且在第一个范围开始前（跨夜锁定期）
-        if time_ranges:
-            # 获取最后一个范围的结束时间
-            last_range = time_ranges[-1]
-            last_end_time = self.parse_time(last_range['end'])
-            
-            # 获取第一个范围的开始时间
-            first_range = time_ranges[0]
-            first_start_time = self.parse_time(first_range['start'])
-            
-            # 如果当前时间在最后一个范围结束后
-            if check_time > last_end_time:
-                # 在最后一个范围结束后，我们应该被锁定
-                return False
-            elif check_time < first_start_time:
-                # 在第一个范围开始前，我们应该被锁定
-                return False
+        if not time_ranges:
+            return False
         
         # 正常检查当天的范围
         for range_config in time_ranges:
             start_time = self.parse_time(range_config['start'])
             end_time = self.parse_time(range_config['end'])
-            if start_time <= check_time <= end_time:
-                return True
+            
+            # 处理跨午夜的时间范围
+            if start_time > end_time:
+                # 跨午夜范围（如23:53-00:59）
+                if check_time >= start_time or check_time <= end_time:
+                    return True
+            else:
+                # 正常范围
+                if start_time <= check_time <= end_time:
+                    return True
         
         return False
     
-    def is_system_locked(self):       # 检查系统是否被锁定，使用改进x检测方法"""
+    def is_system_locked(self):
+        """检查系统是否被锁定，使用改进的检测方法"""
         try:
             current_os = platform.system()
             
             if current_os == 'Windows':
                 import ctypes
                 # 改进的Windows锁定检测
-                # GetForegroundWindow在系统锁定时返回0
-                # 同时检查explorer.exe进程状态作为备份
-                is_locked = ctypes.windll.user32.GetForegroundWindow() == 0
                 
-                # 额外验证
-                if not is_locked:
-                    try:
-                        # 检查屏幕保护程序是否正在运行
-                        if ctypes.windll.user32.SystemParametersInfoW(0x0072, 0, None, 0):
-                            is_locked = True
-                    except:
-                        pass
-                        
-                return is_locked
+                # 方法1: 检查前景窗口
+                try:
+                    foreground_window = ctypes.windll.user32.GetForegroundWindow()
+                    if foreground_window == 0:
+                        print("通过GetForegroundWindow检测到Windows锁定")
+                        return True
+                except:
+                    pass
+                
+                # 方法2: 检查会话是否锁定
+                try:
+                    session_id = ctypes.windll.kernel32.WTSGetActiveConsoleSessionId()
+                    if session_id == 0xFFFFFFFF:
+                        print("通过WTSGetActiveConsoleSessionId检测到Windows锁定")
+                        return True
+                except:
+                    pass
+                
+                # 方法3: 检查屏幕保护程序是否运行
+                try:
+                    if ctypes.windll.user32.SystemParametersInfoW(0x0072, 0, None, 0):
+                        print("通过屏幕保护程序检测到Windows锁定")
+                        return True
+                except:
+                    pass
+                
+                # 方法4: 检查桌面窗口是否可见
+                try:
+                    desktop_window = ctypes.windll.user32.GetDesktopWindow()
+                    if desktop_window == 0:
+                        print("通过GetDesktopWindow检测到Windows锁定")
+                        return True
+                except:
+                    pass
+                
+                # 方法5: 尝试获取活动窗口的标题
+                try:
+                    import ctypes.wintypes
+                    GetWindowTextLength = ctypes.windll.user32.GetWindowTextLengthW
+                    GetWindowText = ctypes.windll.user32.GetWindowTextW
+                    
+                    hwnd = ctypes.windll.user32.GetForegroundWindow()
+                    if hwnd != 0:
+                        length = GetWindowTextLength(hwnd)
+                        if length == 0:
+                            # 没有标题，可能是在锁定界面
+                            print("通过窗口标题检测到Windows锁定")
+                            return True
+                except:
+                    pass
+                
+                # 如果以上方法都没有检测到锁定，返回False
+                return False
             else:  # Linux
                 # 增强的Linux锁定检测，使用更多方法
                 try:
@@ -217,66 +250,63 @@ class RangeMonitor:
         
         current_os = platform.system()
         
-        # Linux平台特殊处理：只运行一次lock_gnome.py
-        if current_os != 'Windows':
-            if self.linux_lock_executed:
-                print("Linux锁定已执行过，跳过重复执行")
-                return
-            else:
-                self.linux_lock_executed = True
-                print("首次执行Linux锁定")
-        
-        if self.lock_process is None or self.lock_process.poll() is not None:
+        # 先终止旧的锁定进程（如果存在）
+        if self.lock_process is not None:
             try:
-                # 根据平台选择锁定程序
-                if current_os == 'Windows':
-                    lock_script = 'point_locker.pyw'
-                else:  # Linux
-                    lock_script = 'lock_gnome.py'
-                
-                print(f"尝试在 {datetime.now().strftime('%H:%M:%S')} 锁定系统")
-                print(f"为 {current_os} 平台使用 {lock_script}")
-                
-                # 准备启动参数
-                launch_args = [sys.executable, lock_script]
-                
-                # 如果是Linux平台，计算并传递倒计时参数
-                if current_os != 'Windows':
-                    # 计算锁定持续时间（分钟）
-                    lock_duration = self.calculate_lock_duration()
-                    launch_args.append(str(lock_duration))
-                    print(f"传递倒计时参数: {lock_duration} 分钟")
-                
-                # 根据平台设置不同的启动参数
-                process_kwargs = {}
-                if current_os == 'Windows':
-                    process_kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
-                
-                self.lock_process = subprocess.Popen(
-                    launch_args,
-                    **process_kwargs
-                )
-                print("锁定进程启动成功")
-                
-                # 短暂延迟后检查进程状态
-                def check_process_status():
-                    time.sleep(3)
-                    if self.lock_process.poll() is not None:
-                        return_code = self.lock_process.poll()
-                        print(f"锁定进程完成，返回码: {return_code}")
-                        if return_code != 0:
-                            print("锁定进程可能已失败")
-                            # 如果Linux锁定失败，重置标志以便重试
-                            if current_os != 'Windows':
-                                self.linux_lock_executed = False
-                
-                threading.Thread(target=check_process_status, daemon=True).start()
-                
+                print(f"终止旧的锁定进程 (PID: {self.lock_process.pid})")
+                self.lock_process.terminate()
+                time.sleep(1)
+                if self.lock_process.poll() is None:
+                    print("强制杀死旧的锁定进程")
+                    self.lock_process.kill()
             except Exception as e:
-                print(f"启动锁定进程失败: {e}")
-                # 如果启动失败，重置Linux锁定标志
-                if current_os != 'Windows':
-                    self.linux_lock_executed = False
+                print(f"终止旧进程时出错: {e}")
+        
+        # 启动新的锁定进程
+        try:
+            # 根据平台选择锁定程序
+            if current_os == 'Windows':
+                lock_script = 'point_locker.pyw'
+            else:  # Linux
+                lock_script = 'fullscreen_break.pyw'
+            
+            print(f"尝试在 {datetime.now().strftime('%H:%M:%S')} 锁定系统")
+            print(f"为 {current_os} 平台使用 {lock_script}")
+            
+            # 准备启动参数
+            launch_args = [sys.executable, lock_script]
+            
+            # 如果是Linux平台，计算并传递倒计时参数
+            if current_os != 'Windows':
+                # 计算锁定持续时间（分钟）
+                lock_duration = self.calculate_lock_duration()
+                launch_args.append(str(lock_duration))
+                print(f"传递倒计时参数: {lock_duration} 分钟")
+            
+            # 根据平台设置不同的启动参数
+            process_kwargs = {}
+            if current_os == 'Windows':
+                process_kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
+            
+            self.lock_process = subprocess.Popen(
+                launch_args,
+                **process_kwargs
+            )
+            print(f"锁定进程启动成功 (PID: {self.lock_process.pid})")
+            
+            # 短暂延迟后检查进程状态
+            def check_process_status():
+                time.sleep(3)
+                if self.lock_process.poll() is not None:
+                    return_code = self.lock_process.poll()
+                    print(f"锁定进程完成，返回码: {return_code}")
+                    if return_code != 0:
+                        print("锁定进程可能已失败")
+            
+            threading.Thread(target=check_process_status, daemon=True).start()
+            
+        except Exception as e:
+            print(f"启动锁定进程失败: {e}")
 
     def calculate_lock_duration(self):
         """计算直到下一个允许时间范围开始或结束的持续时间，支持跨夜锁定"""
@@ -361,11 +391,6 @@ class RangeMonitor:
             except Exception as e:
                 print(f"[解锁] 停止锁定进程时出错: {e}")
         
-        # 重置Linux锁定执行标志
-        if platform.system() != 'Windows':
-            self.linux_lock_executed = False
-            print("[解锁] 重置Linux锁定执行标志")
-        
         # 额外的平台特定解锁机制以确保系统已解锁
         current_os = platform.system()
         if current_os == 'Windows':
@@ -395,26 +420,6 @@ class RangeMonitor:
             current_datetime = datetime.now()
             in_range = self.is_time_in_ranges(current_time)
             
-            # 跨夜锁定期的特殊处理（在最后一个范围结束后直到第一个范围开始）
-            time_ranges = self.config.get('time_ranges', [])
-            is_overnight_lock_period = False
-            
-            if time_ranges:
-                # 获取最后一个范围的结束时间
-                last_range = time_ranges[-1]
-                last_end_time = self.parse_time(last_range['end'])
-                
-                # 获取第一个范围的开始时间
-                first_range = time_ranges[0]
-                first_start_time = self.parse_time(first_range['start'])
-                
-                # 检查当前时间是否在跨夜锁定期
-                if current_time > last_end_time:
-                    is_overnight_lock_period = True
-                elif current_time < first_start_time:
-                    # 对于第一个范围开始前的时间，检查是否来自前一天
-                    is_overnight_lock_period = True
-            
             # 处理状态转换
             if in_range != self.is_in_range:
                 self.is_in_range = in_range
@@ -427,26 +432,20 @@ class RangeMonitor:
             
             # 增强的锁定执行
             if not in_range:
-                if is_overnight_lock_period:
-                    # 跨夜锁定期更严格的执行
-                    print(f"[跨夜锁定] 在 {current_datetime.strftime('%H:%M:%S')} 检查系统锁定状态")
-                    if not self.is_system_locked():
-                        print("[跨夜锁定] 跨夜期间系统未锁定，立即重新锁定")
-                        # 强制锁定而不使用冷却期
-                        self.start_lock(force=True)
-                else:
-                    # 常规不允许时间执行
+                current_os = platform.system()
+                if current_os == 'Windows':
+                    # Windows平台：检查系统是否锁定
                     if not self.is_system_locked():
                         print("在不允许时间范围内检测到解锁，立即重新锁定")
-                        # 强制锁定而不使用冷却期
+                        self.start_lock(force=True)
+                else:
+                    # Linux平台：检查fullscreen_break.pyw进程是否在运行
+                    if self.lock_process is None or self.lock_process.poll() is not None:
+                        print("在不允许时间范围内检测到fullscreen_break.pyw未运行，重新启动")
                         self.start_lock(force=True)
             
             # Linux使用更短间隔以提高响应性
-            # 跨夜锁定期也使用更短间隔以获得更好的执行效果
-            if is_overnight_lock_period:
-                # 跨夜锁定期更频繁检查
-                time.sleep(1)  # 每秒检查一次
-            elif platform.system() == 'Windows':
+            if platform.system() == 'Windows':
                 time.sleep(5)  # Windows：每5秒检查一次
             else:
                 time.sleep(1)  # Linux：每1秒检查一次以获得更好的响应性
