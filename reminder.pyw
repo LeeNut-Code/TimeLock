@@ -247,7 +247,7 @@ def main():
             if 'reminder' in config and 'show_before_minutes' in config['reminder']:
                 show_before_minutes = config['reminder']['show_before_minutes']
                 duration_seconds = show_before_minutes * 60
-                print(f"Loaded reminder duration: {show_before_minutes} minutes ({duration_seconds} seconds)")
+                print(f"加载提醒时间: {show_before_minutes} minutes ({duration_seconds} seconds)")
     except Exception as e:
         print(f"Failed to load configuration: {e}, using default duration of 60 seconds")
     

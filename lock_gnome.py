@@ -199,42 +199,63 @@ def run_fullscreen_break(countdown_minutes):
 
 def main(countdown_minutes=None):
     """
-    主函数：先暂停媒体，然后锁定屏幕，在Linux平台上同时运行fullscreen_break
+    主函数：在Linux平台直接运行fullscreen_break.pyw，不再锁定屏幕
+          在Windows平台保持原有锁定逻辑
     
     参数:
         countdown_minutes: 倒计时分钟数，如果为None则需要从配置中获取或使用默认值
     """
-    print("正在准备锁定屏幕...")
+    print("正在准备执行...")
     
-    # 只在Linux平台上执行媒体控制功能
-    if current_os != 'Windows':
+    if current_os == 'Windows':
+        # Windows平台保持原有逻辑
+        print("Windows平台，执行原有锁定流程...")
+        
         # 暂停媒体播放
         print("正在暂停媒体播放...")
         paused_players = pause_media_playback()
         
-        # 可选：静音系统音频
+        # 静音系统音频
         print("正在静音系统音频...")
         mute_system_audio()
         
-        # 运行fullscreen_break.pyw（只在Linux平台）
+        # 短暂延迟确保操作完成
+        time.sleep(0.5)
+        
+        # 锁定屏幕
+        print("正在锁定屏幕...")
+        lock_success = lock_screen()
+        
+        if lock_success:
+            print("屏幕锁定流程完成")
+        else:
+            print("屏幕锁定失败")
+        
+        return lock_success
+    else:
+        # Linux平台：直接运行fullscreen_break.pyw，不再锁定屏幕
+        print("Linux平台，直接运行fullscreen_break.pyw...")
+        
+        # 暂停媒体播放
+        print("正在暂停媒体播放...")
+        paused_players = pause_media_playback()
+        
+        # 静音系统音频
+        print("正在静音系统音频...")
+        mute_system_audio()
+        
+        # 运行fullscreen_break.pyw
         if countdown_minutes is not None:
-            run_fullscreen_break(countdown_minutes)
-    else:
-        print("Windows平台，跳过媒体控制")
-    
-    # 短暂延迟确保操作完成
-    time.sleep(0.5)
-    
-    # 锁定屏幕
-    print("正在锁定屏幕...")
-    lock_success = lock_screen()
-    
-    if lock_success:
-        print("屏幕锁定流程完成")
-    else:
-        print("屏幕锁定失败")
-    
-    return lock_success
+            success = run_fullscreen_break(countdown_minutes)
+            if success:
+                print("fullscreen_break.pyw已成功启动")
+            else:
+                print("启动fullscreen_break.pyw失败")
+        else:
+            print("未提供倒计时参数，无法启动fullscreen_break.pyw")
+        
+        print("Linux平台执行完成")
+        return True
 
 if __name__ == "__main__":
     # 从命令行参数获取倒计时分钟数（如果有）
