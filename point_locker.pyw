@@ -3,9 +3,30 @@ import ctypes
 import time
 import sys
 import threading
+import os
+import json
+from datetime import datetime, time as dt_time
 
 class PointLocker:
     def __init__(self):
+        # 从config.json加载配置
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                self.config = json.load(f)
+            print(f"配置已成功从 {config_path} 加载")
+        except Exception as e:
+            print(f"加载配置失败: {e}")
+            # 回退到默认配置
+            self.config = {
+                'time_ranges': [
+                    {'start': '08:30', 'end': '09:55'},
+                    {'start': '10:15', 'end': '11:45'},
+                    {'start': '13:10', 'end': '15:55'},
+                    {'start': '16:15', 'end': '17:30'},
+                    {'start': '18:25', 'end': '21:10'}
+                ]
+            }
         self.should_monitor = True
         self.lock_count = 0
     
@@ -79,12 +100,43 @@ class PointLocker:
             # 出错时假设已解锁，以便重新锁定
             return False
     
+    def is_time_in_ranges(self):
+        """检查当前时间是否在允许范围内"""
+        current_time = datetime.now().time()
+        time_ranges = self.config.get('time_ranges', [])
+        
+        if not time_ranges:
+            return False
+        
+        # 正常检查当天的范围
+        for range_config in time_ranges:
+            start_time = datetime.strptime(range_config['start'], "%H:%M").time()
+            end_time = datetime.strptime(range_config['end'], "%H:%M").time()
+            
+            # 处理跨午夜的时间范围
+            if start_time > end_time:
+                # 跨午夜范围（如23:53-00:59）
+                if current_time >= start_time or current_time <= end_time:
+                    return True
+            else:
+                # 正常范围
+                if start_time <= current_time <= end_time:
+                    return True
+        
+        return False
+    
     def monitor_lock(self):
         """持续监控锁定状态，如果解锁则立即重新锁定"""
         print("开始监控锁定状态...")
         consecutive_unlocked_count = 0
         
         while self.should_monitor:
+            # 检查当前时间是否在允许范围内
+            if self.is_time_in_ranges():
+                print("当前时间在允许范围内，停止监控锁定状态")
+                self.should_monitor = False
+                break
+            
             is_locked = self.is_system_locked()
             
             # 每10次检查输出一次状态（避免过多日志）
@@ -112,6 +164,11 @@ class PointLocker:
         """执行锁定和息屏，然后持续监控"""
         print("执行定点锁定和息屏...")
         
+        # 检查当前时间是否在允许范围内
+        if self.is_time_in_ranges():
+            print("当前时间在允许范围内，不需要锁定")
+            sys.exit(0)
+        
         # 先锁定屏幕
         self.lock_screen()
         
@@ -128,6 +185,11 @@ class PointLocker:
         # 主线程保持运行，直到程序被终止
         try:
             while True:
+                # 检查当前时间是否在允许范围内
+                if self.is_time_in_ranges():
+                    print("当前时间在允许范围内，退出监控")
+                    self.should_monitor = False
+                    sys.exit(0)
                 time.sleep(1)
         except KeyboardInterrupt:
             print("收到终止信号，停止监控")
