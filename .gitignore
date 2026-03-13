@@ -55,3 +55,6 @@ release/
 
 # Package script
 package.py
+
+# English README
+README_EN.md
