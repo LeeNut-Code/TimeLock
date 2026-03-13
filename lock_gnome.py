@@ -246,11 +246,28 @@ def main(countdown_minutes=None):
         
         # 运行fullscreen_break.pyw
         if countdown_minutes is not None:
-            success = run_fullscreen_break(countdown_minutes)
-            if success:
-                print("fullscreen_break.pyw已成功启动")
+            # 检查是否已经有fullscreen_break.pyw在运行
+            import psutil
+            running = False
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    if proc.info['name'] == 'python3' or proc.info['name'] == 'python':
+                        cmdline = proc.info['cmdline']
+                        if cmdline and 'fullscreen_break.pyw' in cmdline:
+                            running = True
+                            print(f"fullscreen_break.pyw已经在运行（PID: {proc.info['pid']}）")
+                            break
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+            
+            if not running:
+                success = run_fullscreen_break(countdown_minutes)
+                if success:
+                    print("fullscreen_break.pyw已成功启动")
+                else:
+                    print("启动fullscreen_break.pyw失败")
             else:
-                print("启动fullscreen_break.pyw失败")
+                print("fullscreen_break.pyw已经在运行，跳过启动")
         else:
             print("未提供倒计时参数，无法启动fullscreen_break.pyw")
         

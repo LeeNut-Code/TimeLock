@@ -34,7 +34,6 @@ class ScheduleLauncher:
             }
             # 从回退的time_ranges中提取锁定点
             self.config['lock_points'] = [range_item['end'] for range_item in self.config['time_ranges']]
-        self.timers = []
         self.current_processes = {}
     
     def parse_time(self, time_str):
@@ -52,57 +51,82 @@ class ScheduleLauncher:
     def schedule_lock_point(self, lock_time_str):
         """安排锁定点任务"""
         lock_time = self.parse_time(lock_time_str)
-        current_time = datetime.now().time()
         
-        # 计算延迟秒数
-        now = datetime.now()
-        target_datetime = datetime.combine(now.date(), lock_time)
+        # 启动一个线程来监控时间，基于绝对时间执行任务
+        def monitor_lock_time():
+            while True:
+                now = datetime.now()
+                current_time = now.time()
+                
+                # 检查是否到达提醒时间
+                reminder_minutes = self.config['reminder']['show_before_minutes']
+                reminder_time = (datetime.combine(now.date(), lock_time) - 
+                                timedelta(minutes=reminder_minutes)).time()
+                
+                # 如果当前时间已经过了锁定时间，退出
+                if current_time >= lock_time:
+                    # 执行锁定
+                    self.start_point_locker()
+                    break
+                
+                # 如果到达提醒时间，执行提醒
+                elif current_time >= reminder_time:
+                    self.start_reminder(lock_time_str)
+                    # 提醒后继续监控，直到到达锁定时间
+                    while datetime.now().time() < lock_time:
+                        time.sleep(1)
+                    # 执行锁定
+                    self.start_point_locker()
+                    break
+                
+                # 每10秒检查一次
+                time.sleep(10)
         
-        if current_time < lock_time:
-            delay_seconds = (target_datetime - now).total_seconds()
-            
-            # 安排提醒
-            if self.should_start_reminder(lock_time):
-                reminder_delay = delay_seconds - (self.config['reminder']['show_before_minutes'] * 60)
-                if reminder_delay > 0:
-                    timer = threading.Timer(reminder_delay, self.start_reminder, [lock_time_str])
-                    timer.start()
-                    self.timers.append(timer)
-                    print(f"提醒已安排: {lock_time_str}, 延迟: {reminder_delay} 秒")
-            
-            # 安排锁定
-            timer = threading.Timer(delay_seconds, self.start_point_locker)
-            timer.start()
-            self.timers.append(timer)
-            print(f"锁定已安排: {lock_time_str}, 延迟: {delay_seconds} 秒")
-        else:
-            print(f"锁定时间 {lock_time_str} 已过，跳过")
+        # 启动监控线程
+        thread = threading.Thread(target=monitor_lock_time)
+        thread.daemon = True
+        thread.start()
+        print(f"锁定点监控已启动: {lock_time_str}")
     
     def schedule_shutdown(self):
         """安排关机任务"""
         shutdown_time = self.parse_time(self.config['shutdown_time'])
-        current_time = datetime.now().time()
         
-        if current_time < shutdown_time:
-            now = datetime.now()
-            target_datetime = datetime.combine(now.date(), shutdown_time)
-            delay_seconds = (target_datetime - now).total_seconds()
-            
-            # 安排关机提醒
-            reminder_delay = delay_seconds - (self.config['reminder']['show_before_minutes'] * 60)
-            if reminder_delay > 0:
-                timer = threading.Timer(reminder_delay, self.start_shutdown_reminder)
-                timer.start()
-                self.timers.append(timer)
-                print(f"关机提醒已安排: {self.config['shutdown_time']}, 延迟: {reminder_delay} 秒")
-            
-            # 安排关机
-            timer = threading.Timer(delay_seconds, self.start_shutdown)
-            timer.start()
-            self.timers.append(timer)
-            print(f"关机已安排: {self.config['shutdown_time']}, 延迟: {delay_seconds} 秒")
-        else:
-            print(f"关机时间 {self.config['shutdown_time']} 已过，跳过")
+        # 启动一个线程来监控时间，基于绝对时间执行任务
+        def monitor_shutdown_time():
+            while True:
+                now = datetime.now()
+                current_time = now.time()
+                
+                # 检查是否到达提醒时间
+                reminder_minutes = self.config['reminder']['show_before_minutes']
+                reminder_time = (datetime.combine(now.date(), shutdown_time) - 
+                                timedelta(minutes=reminder_minutes)).time()
+                
+                # 如果当前时间已经过了关机时间，退出
+                if current_time >= shutdown_time:
+                    # 执行关机
+                    self.start_shutdown()
+                    break
+                
+                # 如果到达提醒时间，执行提醒
+                elif current_time >= reminder_time:
+                    self.start_shutdown_reminder()
+                    # 提醒后继续监控，直到到达关机时间
+                    while datetime.now().time() < shutdown_time:
+                        time.sleep(1)
+                    # 执行关机
+                    self.start_shutdown()
+                    break
+                
+                # 每10秒检查一次
+                time.sleep(10)
+        
+        # 启动监控线程
+        thread = threading.Thread(target=monitor_shutdown_time)
+        thread.daemon = True
+        thread.start()
+        print(f"关机监控已启动: {self.config['shutdown_time']}")
     
     def start_reminder(self, lock_time_str):
         """启动锁定提醒窗口"""
@@ -192,16 +216,27 @@ class ScheduleLauncher:
     
     def schedule_tomorrow(self):
         """安排明天的任务"""
-        now = datetime.now()
-        tomorrow = now.date() + timedelta(days=1)
-        first_time = self.parse_time(self.config['lock_points'][0])
-        target_datetime = datetime.combine(tomorrow, first_time)
-        delay_seconds = (target_datetime - now).total_seconds()
+        # 启动一个线程来监控明天的时间
+        def monitor_tomorrow():
+            while True:
+                now = datetime.now()
+                tomorrow = now.date() + timedelta(days=1)
+                first_time = self.parse_time(self.config['lock_points'][0])
+                target_datetime = datetime.combine(tomorrow, first_time)
+                
+                # 检查是否到达明天的第一个锁定时间
+                if datetime.now() >= target_datetime:
+                    self.restart_scheduler()
+                    break
+                
+                # 每60秒检查一次
+                time.sleep(60)
         
-        timer = threading.Timer(delay_seconds, self.restart_scheduler)
-        timer.start()
-        self.timers.append(timer)
-        print(f"调度器重启已安排到明天，延迟: {delay_seconds} 秒")
+        # 启动监控线程
+        thread = threading.Thread(target=monitor_tomorrow)
+        thread.daemon = True
+        thread.start()
+        print("明天任务监控已启动")
     
     def restart_scheduler(self):
         """重启调度器"""
@@ -210,11 +245,8 @@ class ScheduleLauncher:
         self.setup_schedules()
     
     def cleanup(self):
-        """清理所有定时器"""
-        print("正在清理定时器...")
-        for timer in self.timers:
-            timer.cancel()
-        self.timers.clear()
+        """清理所有资源"""
+        print("正在清理资源...")
         
         # 终止当前进程
         for name, process in self.current_processes.items():

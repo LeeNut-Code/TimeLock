@@ -262,6 +262,24 @@ class RangeMonitor:
             except Exception as e:
                 print(f"终止旧进程时出错: {e}")
         
+        # 检查是否已经有fullscreen_break.pyw在运行
+        import psutil
+        running = False
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if proc.info['name'] == 'python3' or proc.info['name'] == 'python':
+                    cmdline = proc.info['cmdline']
+                    if cmdline and 'fullscreen_break.pyw' in cmdline:
+                        running = True
+                        print(f"fullscreen_break.pyw已经在运行（PID: {proc.info['pid']}）")
+                        break
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        
+        if running and current_os != 'Windows':
+            print("fullscreen_break.pyw已经在运行，跳过启动")
+            return
+        
         # 启动新的锁定进程
         try:
             # 根据平台选择锁定程序

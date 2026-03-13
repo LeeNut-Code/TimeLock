@@ -194,23 +194,16 @@ class MainController:
                     print(f"计算的锁定持续时间: {lock_duration:.2f} 分钟")
                     
                     # 优先运行fullscreen_break.pyw
-                    result = subprocess.run([sys.executable, 'fullscreen_break.pyw', str(lock_duration)],
-                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
-                    
-                    # 如果fullscreen_break.pyw成功运行并退出（返回码为0），则不需要执行后续锁定
-                    if result.returncode == 0:
-                        print("使用fullscreen_break.pyw锁定系统")
-                        return
-                    else:
-                        print(f"fullscreen_break.pyw以代码{result.returncode}退出，回退到lock_gnome.py")
-                        
-                except subprocess.TimeoutExpired:
-                    print("fullscreen_break.pyw超时，回退到lock_gnome.py")
+                    # 使用Popen非阻塞运行，与range_monitor保持一致
+                    process = subprocess.Popen([sys.executable, 'fullscreen_break.pyw', str(lock_duration)],
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    print("使用fullscreen_break.pyw锁定系统")
+                    return
                 except FileNotFoundError:
                     print("找不到fullscreen_break.pyw，回退到lock_gnome.py")
                 except Exception as e:
                     print(f"运行fullscreen_break.pyw失败: {e}，回退到lock_gnome.py")
-             
+              
                 # 如果fullscreen_break.pyw失败，则尝试运行lock_gnome.py
                 try:
                     # 计算锁定时间差值（分钟）
@@ -218,7 +211,7 @@ class MainController:
                     print(f"计算的锁定持续时间: {lock_duration:.2f} 分钟")
                     
                     # 直接运行lock_gnome.py并传递倒计时参数
-                    subprocess.run([sys.executable, 'lock_gnome.py', str(lock_duration)],
+                    subprocess.Popen([sys.executable, 'lock_gnome.py', str(lock_duration)],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     print("使用带倒计时的lock_gnome.py锁定系统")
                 except Exception as e:
