@@ -1,7 +1,6 @@
-<div style="background: linear-gradient(135deg, #ffd700, #4caf50); color: #f5f5f5; padding: 10px 20px; text-align: center; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-    <h1 style="font-size: 2.5rem; margin-bottom: 10px; color: #f5f5f5;">TimeLock 定时锁机</h1>
-    <p style="font-size: 1rem; opacity: 0.9; max-width: 600px; margin: 0 auto; color: #f5f5f5;">智能时间锁定系统 - 合理管理使用时间，养成良好习惯</p>
-</div>
+# TimeLock 定时锁机
+
+智能时间锁定系统 - 合理管理使用时间，养成良好习惯
 
 <div align="center">
   <img src="https://img.shields.io/badge/python-3.6+-brightgreen.svg" alt="Python Version">
@@ -21,44 +20,22 @@ TimeLock是一款专业的智能时间管理工具，基于Python开发，支持
 
 ## 功能特点
 
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;">
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #4caf50; transition: transform 0.3s ease;">
-        <h4 style="color: #4caf50; margin-bottom: 10px;">智能时间管理</h4>
-        <p>根据配置的时间范围自动锁定系统，支持跨夜锁定</p>
-    </div>
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #4caf50; transition: transform 0.3s ease;">
-        <h4 style="color: #4caf50; margin-bottom: 10px;">跨平台支持</h4>
-        <p>支持 Windows 和 Linux 平台，提供不同的锁定方式</p>
-    </div>
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #4caf50; transition: transform 0.3s ease;">
-        <h4 style="color: #4caf50; margin-bottom: 10px;">全屏休息模式</h4>
-        <p>提供美观的全屏休息界面，支持壁纸和诗词显示</p>
-    </div>
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #4caf50; transition: transform 0.3s ease;">
-        <h4 style="color: #4caf50; margin-bottom: 10px;">灵活配置</h4>
-        <p>通过配置文件自定义时间范围、提醒设置和界面样式</p>
-    </div>
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #4caf50; transition: transform 0.3s ease;">
-        <h4 style="color: #4caf50; margin-bottom: 10px;">关机功能</h4>
-        <p>可设置自动关机时间，确保按时休息</p>
-    </div>
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #4caf50; transition: transform 0.3s ease;">
-        <h4 style="color: #4caf50; margin-bottom: 10px;">提醒功能</h4>
-        <p>在锁定前提供提醒，让用户有时间保存工作</p>
-    </div>
-</div>
+- **智能时间管理**：根据配置的时间范围自动锁定系统，支持跨夜锁定
+- **跨平台支持**：支持 Windows 和 Linux 平台，提供不同的锁定方式
+- **全屏休息模式**：提供美观的全屏休息界面，支持壁纸和诗词显示
+- **灵活配置**：通过配置文件自定义时间范围、提醒设置和界面样式
+- **关机功能**：可设置自动关机时间，确保按时休息
+- **提醒功能**：在锁定前提供提醒，让用户有时间保存工作
 
 ## 程序运行截图
 
-<div style="text-align: center; margin: 20px 0;">
-    <img src="img/截图_锁定屏幕.png" alt="系统锁定" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-    <p style="margin-top: 10px; font-weight: 500; color: #6c757d;">系统锁定</p>
-</div>
+### 系统锁定
 
-<div style="text-align: center; margin: 20px 0;">
-    <img src="img/截图_锁定提醒.png" alt="锁定提醒" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-    <p style="margin-top: 10px; font-weight: 500; color: #6c757d;">锁定提醒</p>
-</div>
+![系统锁定](img/截图_锁定屏幕.png)
+
+### 锁定提醒
+
+![锁定提醒](img/截图_锁定提醒.png)
 
 ## 安装方法
 
@@ -83,11 +60,9 @@ pip install PyQt5
 
 为了帮助您更好地理解系统的运行原理，以下是 TimeLock System 的运行逻辑流程图：
 
-<div style="text-align: center; margin: 20px 0;">
-    <img src="img/截图_运行逻辑流程图.png" alt="运行逻辑流程图" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-    <p style="margin-top: 10px; font-weight: 500; color: #6c757d;">运行逻辑流程图</p>
-</div>
+### 运行逻辑流程图
 
+![运行逻辑流程图](img/截图_运行逻辑流程图.png)
 
 ### 启动程序
 
@@ -189,13 +164,14 @@ cp timelock.desktop ~/.config/autostart/
 "break_ui": {
   "wallpaper_path": "/mnt/DATA/Administrator/图片/横屏壁纸/",
   "wallpaper_path_windows": "D:\Administrator\图片\横屏壁纸\",
-  "opacity": 0.85,
+  "opacity": 0.75,
   "blur_effect": true,
-  "blur_radius": 5,
+  "blur_radius": 3,
   "show_poem": true,
   "poem_api": "https://v1.jinrishici.com/all.json",
-  "font_color": "#ffd700",
+  "font_color": "#fffdf8",
   "font_color_options": [
+    "#fffdf8",
     "#fff",
     "#ffd700",
     "#00ff00",
@@ -213,6 +189,10 @@ cp timelock.desktop ~/.config/autostart/
 - `break_ui.poem_api` - 诗词 API 地址
 - `break_ui.font_color` - 文字颜色（十六进制颜色码）
 - `break_ui.font_color_options` - 可选的文字颜色列表
+
+### 锁定方式配置
+
+- `use_fullscreen_lock` - 是否使用全屏锁定模式（true/false），设置为true时将使用全屏休息界面作为锁定方式，false时使用系统默认锁定方式
 
 ### 配置示例
 
@@ -234,19 +214,21 @@ cp timelock.desktop ~/.config/autostart/
   "break_ui": {
     "wallpaper_path": "/path/to/wallpapers/",
     "wallpaper_path_windows": "C:\path\to\wallpapers\",
-    "opacity": 0.85,
+    "opacity": 0.75,
     "blur_effect": true,
-    "blur_radius": 5,
+    "blur_radius": 3,
     "show_poem": true,
     "poem_api": "https://v1.jinrishici.com/all.json",
-    "font_color": "#ffd700",
+    "font_color": "#fffdf8",
     "font_color_options": [
+      "#fffdf8",
       "#fff",
       "#ffd700",
       "#00ff00",
       "#ff6b6b"
     ]
-  }
+  },
+  "use_fullscreen_lock": false
 }
 ```
 
@@ -303,13 +285,6 @@ python test_lock.pyw
 **注意**：测试过程中会修改配置文件，但测试完成后会自动恢复原始配置，不会影响系统的正常使用。
 
 ## 平台支持
-
-<div>
-    <span style="background: #4caf50; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; display: inline-block; margin: 5px;">Windows</span>
-    <span style="background: #4caf50; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; display: inline-block; margin: 5px;">Linux</span>
-</div>
-
-系统会根据不同平台自动选择合适的锁定方式：
 
 - **Windows**：使用系统内置锁定功能
 - **Linux**：优先使用全屏休息模式，其次尝试系统锁定命令

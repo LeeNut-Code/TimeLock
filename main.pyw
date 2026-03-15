@@ -183,9 +183,29 @@ class MainController:
         try:
             # 先检查平台，然后根据平台执行相应的锁定命令
             if platform.system() == 'Windows':
-                # Windows平台直接调用锁定命令
-                subprocess.run(['rundll32.exe', 'user32.dll,LockWorkStation'], shell=True, check=True)
-                print("Windows平台系统已锁定")
+                # 获取Windows锁定方法配置
+                use_fullscreen_lock = self.config.get('use_fullscreen_lock', False)
+                
+                if use_fullscreen_lock:
+                    # Windows平台使用fullscreen_break.pyw
+                    try:
+                        # 计算锁定时间差值（分钟）
+                        lock_duration = self.calculate_lock_duration()
+                        print(f"计算的锁定持续时间: {lock_duration:.2f} 分钟")
+                        
+                        # 运行fullscreen_break.pyw
+                        process = subprocess.Popen([sys.executable, 'fullscreen_break.pyw', str(lock_duration)],
+                                              creationflags=subprocess.CREATE_NO_WINDOW)
+                        print("Windows平台使用fullscreen_break.pyw锁定系统")
+                    except Exception as e:
+                        print(f"运行fullscreen_break.pyw失败: {e}，回退到系统锁定")
+                        # 回退到系统锁定
+                        subprocess.run(['rundll32.exe', 'user32.dll,LockWorkStation'], shell=True, check=True)
+                        print("Windows平台系统已锁定")
+                else:
+                    # Windows平台使用系统锁定
+                    subprocess.run(['rundll32.exe', 'user32.dll,LockWorkStation'], shell=True, check=True)
+                    print("Windows平台系统已锁定")
             else:
                 # Linux平台：优先尝试运行fullscreen_break.pyw
                 try:
@@ -233,7 +253,7 @@ class MainController:
                             break
                         except subprocess.CalledProcessError:
                             continue
-                        
+                    
         except Exception as e:
             print(f"立即锁定系统失败: {e}")
 

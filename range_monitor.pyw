@@ -282,24 +282,29 @@ class RangeMonitor:
         
         # 启动新的锁定进程
         try:
-            # 根据平台选择锁定程序
+            # 根据平台和配置选择锁定程序
             if current_os == 'Windows':
-                lock_script = 'point_locker.pyw'
+                # 获取Windows锁定方法配置
+                use_fullscreen_lock = self.config.get('use_fullscreen_lock', False)
+                
+                if use_fullscreen_lock:
+                    lock_script = 'fullscreen_break.pyw'
+                    # 计算锁定持续时间（分钟）
+                    lock_duration = self.calculate_lock_duration()
+                    launch_args = [sys.executable, lock_script, str(lock_duration)]
+                    print(f"传递倒计时参数: {lock_duration} 分钟")
+                else:
+                    lock_script = 'point_locker.pyw'
+                    launch_args = [sys.executable, lock_script]
             else:  # Linux
                 lock_script = 'fullscreen_break.pyw'
+                # 计算锁定持续时间（分钟）
+                lock_duration = self.calculate_lock_duration()
+                launch_args = [sys.executable, lock_script, str(lock_duration)]
+                print(f"传递倒计时参数: {lock_duration} 分钟")
             
             print(f"尝试在 {datetime.now().strftime('%H:%M:%S')} 锁定系统")
             print(f"为 {current_os} 平台使用 {lock_script}")
-            
-            # 准备启动参数
-            launch_args = [sys.executable, lock_script]
-            
-            # 如果是Linux平台，计算并传递倒计时参数
-            if current_os != 'Windows':
-                # 计算锁定持续时间（分钟）
-                lock_duration = self.calculate_lock_duration()
-                launch_args.append(str(lock_duration))
-                print(f"传递倒计时参数: {lock_duration} 分钟")
             
             # 根据平台设置不同的启动参数
             process_kwargs = {}
@@ -452,10 +457,19 @@ class RangeMonitor:
             if not in_range:
                 current_os = platform.system()
                 if current_os == 'Windows':
-                    # Windows平台：检查系统是否锁定
-                    if not self.is_system_locked():
-                        print("在不允许时间范围内检测到解锁，立即重新锁定")
-                        self.start_lock(force=True)
+                    # 获取Windows锁定方法配置
+                    use_fullscreen_lock = self.config.get('use_fullscreen_lock', False)
+                    
+                    if use_fullscreen_lock:
+                        # Windows平台使用fullscreen_break.pyw：检查进程是否在运行
+                        if self.lock_process is None or self.lock_process.poll() is not None:
+                            print("在不允许时间范围内检测到fullscreen_break.pyw未运行，重新启动")
+                            self.start_lock(force=True)
+                    else:
+                        # Windows平台使用系统锁定：检查系统是否锁定
+                        if not self.is_system_locked():
+                            print("在不允许时间范围内检测到解锁，立即重新锁定")
+                            self.start_lock(force=True)
                 else:
                     # Linux平台：检查fullscreen_break.pyw进程是否在运行
                     if self.lock_process is None or self.lock_process.poll() is not None:

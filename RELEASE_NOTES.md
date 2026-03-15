@@ -1,4 +1,43 @@
 # 发行注记
+## 版本: 1.2.4
+### 日期: 2026-03-15
+
+### 新增功能
+- 添加了 `use_fullscreen_lock` 配置选项，用于切换Windows系统下的锁定机制
+- 实现了Windows系统下使用Linux锁定机制的功能，即锁定时运行fullscreen_break.pyw而不是锁定屏幕
+
+### 修改内容
+1. **config.json**:
+   - 添加了 `use_fullscreen_lock` 布尔选项，默认为false（使用系统锁定）
+
+2. **main.pyw**:
+   - 更新了 `start_lock` 方法，根据 `use_fullscreen_lock` 配置选择锁定机制
+   - 当 `use_fullscreen_lock` 为true时，Windows平台使用fullscreen_break.pyw进行锁定
+
+3. **range_monitor.pyw**:
+   - 更新了 `start_lock` 方法，根据 `use_fullscreen_lock` 配置选择锁定机制
+   - 更新了 `monitor_loop` 方法，在Windows平台使用fullscreen_break.pyw时检查进程是否在运行
+
+4. **fullscreen_break.pyw**:
+   - 添加了 `prevent_screen_lock` 方法，防止屏幕锁定和系统睡眠
+   - 在定时器中每30秒调用一次防止屏幕锁定的函数
+
+5. **point_locker.pyw**:
+   - 移除了关闭显示器的代码，确保在锁定时屏幕保持开启状态
+   - 修改了 `execute_lock` 方法，移除了息屏功能
+   - 修改了 `monitor_lock` 方法，移除了重新锁定时的息屏功能
+
+### 修复的问题
+- 确保系统锁定时屏幕保持开启状态，不再关闭显示器
+- 解决了Windows系统下使用fullscreen_break.pyw时可能被系统自动锁定的问题
+
+### 技术改进
+- 在Windows系统中使用ctypes调用Windows API来防止屏幕锁定和睡眠
+- 在Linux系统中使用xdotool模拟按键事件来防止屏幕锁定
+- 增加了配置选项的灵活性，允许用户选择适合自己的锁定机制
+
+---
+
 ## 版本: 1.2.3
 ### 日期: 2026-03-07
 

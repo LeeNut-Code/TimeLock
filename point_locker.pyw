@@ -154,29 +154,25 @@ class PointLocker:
                 print(f"重新锁定系统 (第{self.lock_count + 1}次)")
                 self.lock_screen()
                 time.sleep(2)
-                self.turn_off_display()
                 consecutive_unlocked_count = 0
             
             # 每秒检查一次锁定状态
             time.sleep(1)
     
     def execute_lock(self):
-        """执行锁定和息屏，然后持续监控"""
-        print("执行定点锁定和息屏...")
+        """执行锁定，然后持续监控"""
+        print("执行定点锁定...")
         
         # 检查当前时间是否在允许范围内
         if self.is_time_in_ranges():
             print("当前时间在允许范围内，不需要锁定")
             sys.exit(0)
         
-        # 先锁定屏幕
+        # 锁定屏幕
         self.lock_screen()
         
         # 等待1秒确保锁定完成
         time.sleep(1)
-        
-        # 然后关闭显示器
-        self.turn_off_display()
         
         # 启动监控线程，持续检查锁定状态
         monitor_thread = threading.Thread(target=self.monitor_lock, daemon=True)

@@ -24,6 +24,28 @@ class TransparentWindow(QMainWindow):
         self.central_widget = None
         self.init_ui()
         self.init_timers()
+        self.prevent_screen_lock()
+
+    def prevent_screen_lock(self):
+        """防止屏幕锁定和睡眠"""
+        if os.name == 'nt':  # Windows
+            try:
+                import ctypes
+                # 调用Windows API设置线程执行状态，防止系统睡眠
+                # ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
+                ctypes.windll.kernel32.SetThreadExecutionState(0x80000007)
+                print("已设置防止Windows屏幕锁定和睡眠")
+            except Exception as e:
+                print(f"设置防止Windows屏幕锁定失败: {e}")
+        else:  # Linux
+            try:
+                # 在Linux中，我们可以通过定期发送按键事件来防止屏幕锁定
+                # 这里使用xdotool模拟按键事件
+                import subprocess
+                subprocess.run(['xdotool', 'key', 'Shift'], capture_output=True)
+                print("已设置防止Linux屏幕锁定")
+            except Exception as e:
+                print(f"设置防止Linux屏幕锁定失败: {e}")
 
 # ---------------- 配置读取 ----------------
     def load_config(self):
@@ -272,6 +294,11 @@ class TransparentWindow(QMainWindow):
         self.time_label.setText(QDateTime.currentDateTime().toString("hh:mm"))
         self.date_label.setText(QDateTime.currentDateTime().toString("yyyy/MM/dd"))
         self.count_label.setText(f"{self.remaining_seconds // 60:02d}:{self.remaining_seconds % 60:02d}")
+        
+        # 每30秒调用一次防止屏幕锁定的函数
+        if self.remaining_seconds % 30 == 0:
+            self.prevent_screen_lock()
+        
         if self.remaining_seconds <= 0:
             self.close_break()
 
